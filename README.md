@@ -1,8 +1,21 @@
 # ACP CW3 — Intelligent Cloud Service Health Monitor
 
-**Student:** S2861313  
-**Module:** Applied Cloud Programming  
 **Stack:** Java 21 · Spring Boot 3.4 · AWS SDK v2 · Kafka · RabbitMQ · Redis · PostgreSQL
+
+## Tech Stack
+
+| Technology | Version | Purpose |
+|---|---|---|
+| Java | 21 | Runtime |
+| Spring Boot | 3.4.2 | Web framework + scheduling |
+| AWS SDK v2 | 2.23.0 | S3 + DynamoDB clients |
+| Apache Kafka | 3.6.1 | Event streaming |
+| RabbitMQ AMQP | 5.20.0 | Alerting |
+| Jedis | 5.1.0 | Redis client |
+| PostgreSQL | 15 | Audit history |
+| LocalStack | 3.8.1 | Local AWS simulation |
+| Docker | Buildx | Multi-platform image |
+
 
 ---
 
@@ -248,24 +261,4 @@ A Redis `INCR` counter per service increments atomically on each DOWN/DEGRADED r
 **Report health classification**  
 S3 reports classify services as healthy/unhealthy based on current live status from Redis, not historical uptime percentage. A service with 95% uptime that is currently DOWN would correctly appear as unhealthy.
 
----
 
-## AI Usage
-
-Claude (Anthropic) was used as the primary development assistant for architecture design, Java implementation, Spring dependency resolution, Kafka consumer strategy, and the dashboard. All engineering decisions — including identifying the Kafka `subscribe()` issue and resolving the circular dependency — were made by the author. The AI provided implementation velocity; engineering judgment remained with the author.
-
----
-
-## Tech Stack
-
-| Technology | Version | Purpose |
-|---|---|---|
-| Java | 21 | Runtime |
-| Spring Boot | 3.4.2 | Web framework + scheduling |
-| AWS SDK v2 | 2.23.0 | S3 + DynamoDB clients |
-| Apache Kafka | 3.6.1 | Event streaming |
-| RabbitMQ AMQP | 5.20.0 | Alerting |
-| Jedis | 5.1.0 | Redis client |
-| PostgreSQL | 15 | Audit history |
-| LocalStack | 3.8.1 | Local AWS simulation |
-| Docker | Buildx | Multi-platform image |
