@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACP Health Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
+    header { background: #1d1d1f; color: #f5f5f7; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 18px; font-weight: 500; }
+    header span { font-size: 13px; color: #a1a1a6; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+    .section-title { font-size: 13px; font-weight: 500; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #e5e5ea; }
+    .service-name { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+    .status-UP { background: #d1fae5; color: #065f46; }
+    .status-DOWN { background: #fee2e2; color: #991b1b; }
+    .status-DEGRADED { background: #fef3c7; color: #92400e; }
+    .status-UNKNOWN { background: #f3f4f6; color: #374151; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-UP { background: #10b981; }
+    .dot-DOWN { background: #ef4444; animation: pulse 1.5s infinite; }
+    .dot-DEGRADED { background: #f59e0b; }
+    .dot-UNKNOWN { background: #9ca3af; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .meta { font-size: 12px; color: #6e6e73; margin-top: 8px; }
+    .stat-row { display: flex; justify-content: space-between; font-size: 12px; color: #6e6e73; margin-top: 4px; }
+    .stat-value { font-weight: 500; color: #1d1d1f; }
+    .stat-value.red { color: #ef4444; }
+    .uptime-bar { height: 4px; background: #e5e5ea; border-radius: 2px; margin-top: 10px; overflow: hidden; }
+    .uptime-fill { height: 100%; border-radius: 2px; background: #10b981; transition: width 0.5s; }
+    .uptime-fill.warn { background: #f59e0b; }
+    .uptime-fill.danger { background: #ef4444; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .btn { font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.8; }
+    .btn-primary { background: #1d1d1f; color: #fff; }
+    .btn-danger { background: #fee2e2; color: #991b1b; }
+    .btn-success { background: #d1fae5; color: #065f46; }
+    .btn-secondary { background: #f3f4f6; color: #374151; }
+    .btn-purple { background: #ede9fe; color: #5b21b6; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .refresh-btn { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e5ea; background: #fff; cursor: pointer; }
+    .refresh-btn:hover { background: #f5f5f7; }
+    .last-refresh { font-size: 12px; color: #6e6e73; }
+    .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .summary-card { background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #e5e5ea; }
+    .summary-label { font-size: 12px; color: #6e6e73; margin-bottom: 4px; }
+    .summary-value { font-size: 24px; font-weight: 500; }
+    .summary-value.green { color: #10b981; }
+    .summary-value.red { color: #ef4444; }
+    .summary-value.blue { color: #3b82f6; }
+    .history-table { background: #fff; border-radius: 12px; border: 1px solid #e5e5ea; overflow: hidden; margin-bottom: 24px; }
+    .history-table table { width: 100%; border-collapse: collapse; }
+    .history-table th { font-size: 12px; font-weight: 500; color: #6e6e73; text-align: left; padding: 12px 16px; border-bottom: 1px solid #e5e5ea; background: #f9f9fb; }
+    .history-table td { font-size: 13px; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .tabs { display: flex; gap: 4px; background: #f3f4f6; border-radius: 10px; padding: 4px; margin-bottom: 24px; width: fit-content; }
+    .tab { font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 8px; border: none; cursor: pointer; background: transparent; color: #6e6e73; }
+    .tab.active { background: #fff; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .section { display: none; }
+    .section.active { display: block; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #e5e5ea; border-top-color: #1d1d1f; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .alert-item { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 12px; }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-msg { font-size: 12px; color: #6e6e73; flex: 1; }
+    .alert-time { font-size: 11px; color: #9ca3af; min-width: 80px; text-align: right; }
+    .empty-state { padding: 32px; text-align: center; color: #6e6e73; font-size: 13px; }
+    .failure-badge { display: inline-block; background: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+    .report-item { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+    .report-item:last-child { border-bottom: none; }
+    .report-key { font-size: 13px; font-weight: 500; font-family: monospace; }
+    .report-meta { font-size: 12px; color: #6e6e73; }
+    .health-pill { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .health-HEALTHY { background: #d1fae5; color: #065f46; }
+    .health-DEGRADED { background: #fef3c7; color: #92400e; }
+    .health-CRITICAL { background: #fee2e2; color: #991b1b; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1d1d1f; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<header>
+  <h1>ACP Health Monitor</h1>
+  <span id="autoRefreshLabel">Auto-refresh every 30s</span>
+</header>
+
+<div class="container">
+  <div class="top-bar">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('dashboard', this)">Dashboard</button>
+      <button class="tab" onclick="switchTab('history', this)">History</button>
+      <button class="tab" onclick="switchTab('alerts', this)">Alerts</button>
+      <button class="tab" onclick="switchTab('stats', this)">Stats</button>
+      <button class="tab" onclick="switchTab('reports', this)">Reports</button>
+      <button class="tab" onclick="switchTab('stream', this)">Kafka stream</button>
+      <button class="tab" onclick="switchTab('analytics', this)">Analytics</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="last-refresh" id="lastRefresh">Loading...</span>
+      <button class="refresh-btn" onclick="refreshAll()">
+        <span id="refreshSpinner" style="display:none" class="spinner"></span>
+        Refresh now
+      </button>
+    </div>
+  </div>
+
+  <div id="tab-dashboard" class="section active">
+    <div class="summary-bar">
+      <div class="summary-card"><div class="summary-label">Services up</div><div class="summary-value green" id="sumUp">-</div></div>
+      <div class="summary-card"><div class="summary-label">Services down</div><div class="summary-value red" id="sumDown">-</div></div>
+      <div class="summary-card"><div class="summary-label">Total checks</div><div class="summary-value blue" id="sumChecks">-</div></div>
+      <div class="summary-card"><div class="summary-label">Avg response</div><div class="summary-value" id="sumAvg">-</div></div>
+    </div>
+    <div class="section-title">Service status</div>
+    <div class="grid" id="serviceGrid"><div class="card"><div class="meta">Loading...</div></div></div>
+  </div>
+
+  <div id="tab-history" class="section">
+    <div class="section-title">Recent health checks</div>
+    <div class="history-table" id="historyTable"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <div id="tab-alerts" class="section">
+    <div class="section-title">Recent alerts</div>
+    <div class="history-table" id="alertsList"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <div id="tab-stats" class="section">
+    <div class="section-title">Service statistics</div>
+    <div class="grid" id="statsGrid"><div class="card"><div class="meta">Loading...</div></div></div>
+  </div>
+
+  <div id="tab-reports" class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0">S3 health reports</div>
+      <button class="btn btn-primary" onclick="generateReport()">Generate report</button>
+    </div>
+    <div class="history-table" id="reportsList"><div class="empty-state">Loading...</div></div>
+  </div>
+  <div id="tab-stream" class="section">
+    <div class="section-title">Live kafka health event stream</div>
+    <div class="history-table" id="streamList"><div class="empty-state">Loading...</div></div>
+  </div>
+
+  <div id="tab-analytics" class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0">DynamoDB analytics</div>
+      <button class="btn btn-primary" onclick="triggerSnapshot()">Store snapshot now</button>
+    </div>
+    <div class="grid" id="analyticsGrid"><div class="card"><div class="meta">Loading...</div></div></div>
+  </div>
+</div>
+
+<script>
+  const BASE = '/api/v1/health';
+  let statusData = {}, statsData = {};
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function statusClass(s) {
+    return 'status-' + (s || 'UNKNOWN');
+  }
+
+  function dotClass(s) {
+    return 'dot-' + (s || 'UNKNOWN');
+  }
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
+    if (diff < 60) return diff + 's ago';
+    if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+    return Math.floor(diff/3600) + 'h ago';
+  }
+
+  async function fetchJSON(url, method = 'GET') {
+    const res = await fetch(url, { method });
+    return res.json();
+  }
+
+  async function loadStatus() {
+    statusData = await fetchJSON(BASE + '/status');
+    const services = Object.keys(statusData);
+    let upCount = 0, downCount = 0, totalMs = 0, msCount = 0;
+
+    const html = services.map(name => {
+      const s = statusData[name];
+      const status = s.status || 'UNKNOWN';
+      if (status === 'UP') upCount++;
+      else downCount++;
+      const rt = parseInt(s.responseTime) || 0;
+      if (rt > 0) { totalMs += rt; msCount++; }
+
+      const failures = s.consecutiveFailures || 0;
+      const failureBadge = failures > 0
+              ? `<span class="failure-badge">${failures} consecutive failure${failures > 1 ? 's' : ''}</span>` : '';
+
+      const uptime = statsData[name] ? statsData[name].uptimePercent : null;
+      const fillClass = uptime >= 90 ? '' : uptime >= 50 ? ' warn' : ' danger';
+      const uptimeBar = uptime !== null
+              ? `<div class="uptime-bar"><div class="uptime-fill${fillClass}" style="width:${uptime}%"></div></div>
+                       <div class="stat-row"><span>Uptime</span><span class="stat-value">${uptime}%</span></div>` : '';
+
+      return `<div class="card">
+                    <div class="service-name">${name}${failureBadge}</div>
+                    <span class="status-badge ${statusClass(status)}">
+                        <span class="dot ${dotClass(status)}"></span>${status}
+                    </span>
+                    <div class="meta">${s.message || ''}</div>
+                    <div class="stat-row"><span>Response</span><span class="stat-value">${s.responseTime || '-'}</span></div>
+                    <div class="stat-row"><span>Checked</span><span class="stat-value">${timeAgo(s.checkedAt)}</span></div>
+                    ${uptimeBar}
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="recover('${name}')">Recover</button>
+                        <button class="btn btn-danger" onclick="simulateDown('${name}')">Simulate down</button>
+                        <button class="btn btn-success" onclick="simulateUp('${name}')">Clear</button>
+                    </div>
+                </div>`;
+    }).join('');
+
+    document.getElementById('serviceGrid').innerHTML = html;
+    document.getElementById('sumUp').textContent = upCount;
+    document.getElementById('sumDown').textContent = downCount;
+    document.getElementById('sumAvg').textContent = msCount > 0
+            ? Math.round(totalMs / msCount) + 'ms' : '-';
+  }
+
+  async function loadStats() {
+    statsData = await fetchJSON(BASE + '/stats');
+    document.getElementById('sumChecks').textContent =
+            Object.values(statsData).reduce((a, s) => a + (s.totalChecks || 0), 0);
+
+    const html = Object.entries(statsData).map(([name, s]) => {
+      const uptime = s.uptimePercent || 0;
+      const fillClass = uptime >= 90 ? '' : uptime >= 50 ? ' warn' : ' danger';
+      return `<div class="card">
+                    <div class="service-name">${name}</div>
+                    <div class="stat-row"><span>Total checks</span><span class="stat-value">${s.totalChecks || 0}</span></div>
+                    <div class="stat-row"><span>Up</span><span class="stat-value">${s.upCount || 0}</span></div>
+                    <div class="stat-row"><span>Down</span><span class="stat-value ${s.downCount > 0 ? 'red' : ''}">${s.downCount || 0}</span></div>
+                    <div class="stat-row"><span>Avg response</span><span class="stat-value">${s.avgResponseTimeMs || 0}ms</span></div>
+                    <div class="uptime-bar"><div class="uptime-fill${fillClass}" style="width:${uptime}%"></div></div>
+                    <div class="stat-row"><span>Uptime</span><span class="stat-value">${uptime}%</span></div>
+                </div>`;
+    }).join('');
+    document.getElementById('statsGrid').innerHTML =
+            html || '<div class="empty-state">No stats yet — trigger a check first</div>';
+  }
+
+  async function loadHistory() {
+    const history = await fetchJSON(BASE + '/history?limit=20');
+    if (!history.length) {
+      document.getElementById('historyTable').innerHTML =
+              '<div class="empty-state">No history yet</div>';
+      return;
+    }
+    const rows = history.map(h => `<tr>
+                <td>${h.service_name}</td>
+                <td><span class="status-badge ${statusClass(h.status)}">${h.status}</span></td>
+                <td>${h.response_time_ms}ms</td>
+                <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.message || ''}</td>
+                <td>${new Date(h.checked_at).toLocaleTimeString()}</td>
+                <td>${h.recovery_attempted ? (h.recovery_successful ? '✓ Recovered' : '✗ Failed') : '-'}</td>
+            </tr>`).join('');
+    document.getElementById('historyTable').innerHTML =
+            `<table><thead><tr><th>Service</th><th>Status</th><th>Response</th><th>Message</th><th>Time</th><th>Recovery</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  async function loadAlerts() {
+    const alerts = await fetchJSON(BASE + '/alerts');
+    if (!alerts.length) {
+      document.getElementById('alertsList').innerHTML =
+              '<div class="empty-state">No alerts — all services healthy</div>';
+      return;
+    }
+    const items = alerts.map(a => `<div class="alert-item">
+                <span class="status-badge ${statusClass(a.status || 'DOWN')}">${a.serviceName || '-'}</span>
+                <div class="alert-msg">${a.message || ''}</div>
+                <div class="alert-time">${timeAgo(a.timestamp)}</div>
+            </div>`).join('');
+    document.getElementById('alertsList').innerHTML = items;
+  }
+
+  async function loadReports() {
+    const reports = await fetchJSON(BASE + '/report');
+    if (!reports.length || reports[0].error) {
+      document.getElementById('reportsList').innerHTML =
+              '<div class="empty-state">No reports yet — click "Generate report" to create one</div>';
+      return;
+    }
+    const items = reports.map(r => `<div class="report-item">
+                <div>
+                    <div class="report-key">${r.key}</div>
+                    <div class="report-meta">${r.sizeBytes} bytes · ${new Date(r.lastModified).toLocaleString()}</div>
+                </div>
+                <button class="btn btn-secondary" onclick="viewReport('${r.key}')">View</button>
+            </div>`).join('');
+    document.getElementById('reportsList').innerHTML = items;
+  }
+
+  async function viewReport(key) {
+    const report = await fetchJSON(BASE + '/report/' + key);
+    const summary = report.summary || {};
+    const health = summary.overallHealth || 'UNKNOWN';
+    const stats = report.serviceStats || {};
+
+    const statsRows = Object.entries(stats).map(([name, s]) =>
+            `<tr>
+                    <td>${name}</td>
+                    <td>${s.uptimePercent || 0}%</td>
+                    <td>${s.totalChecks || 0}</td>
+                    <td>${s.upCount || 0}</td>
+                    <td>${s.downCount || 0}</td>
+                    <td>${s.avgResponseTimeMs || 0}ms</td>
+                    <td>${s.consecutiveFailures || 0}</td>
+                </tr>`).join('');
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+                <div style="background:#fff;border-radius:16px;padding:28px;width:700px;max-width:95vw;max-height:85vh;overflow-y:auto;position:relative;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <div>
+                            <div style="font-size:16px;font-weight:500;">Health Report</div>
+                            <div style="font-size:12px;color:#6e6e73;margin-top:2px;">${key}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;"
+                                class="health-${health}">${health}</span>
+                            <button onclick="this.closest('[style*=fixed]').remove()"
+                                style="border:none;background:#f3f4f6;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;">Close</button>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+                        <div style="background:#f9f9fb;border-radius:10px;padding:14px;">
+                            <div style="font-size:12px;color:#6e6e73;">Total services</div>
+                            <div style="font-size:22px;font-weight:500;">${summary.totalServices || 0}</div>
+                        </div>
+                        <div style="background:#d1fae5;border-radius:10px;padding:14px;">
+                            <div style="font-size:12px;color:#065f46;">Healthy</div>
+                            <div style="font-size:22px;font-weight:500;color:#065f46;">${summary.healthyServices || 0}</div>
+                        </div>
+                        <div style="background:#fee2e2;border-radius:10px;padding:14px;">
+                            <div style="font-size:12px;color:#991b1b;">Unhealthy</div>
+                            <div style="font-size:22px;font-weight:500;color:#991b1b;">${summary.unhealthyServices || 0}</div>
+                        </div>
+                    </div>
+                    <div style="font-size:13px;font-weight:500;color:#6e6e73;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Service breakdown</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="background:#f9f9fb;">
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Service</th>
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Uptime</th>
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Checks</th>
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Up</th>
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Down</th>
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Avg resp.</th>
+                                <th style="text-align:left;padding:8px 12px;font-size:12px;color:#6e6e73;font-weight:500;">Failures</th>
+                            </tr>
+                        </thead>
+                        <tbody>${statsRows}</tbody>
+                    </table>
+                    <div style="font-size:12px;color:#9ca3af;margin-top:16px;">Generated: ${new Date(report.generatedAt).toLocaleString()}</div>
+                </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
+
+  async function generateReport() {
+    toast('Generating report...');
+    const result = await fetchJSON(BASE + '/report', 'POST');
+    if (result.error) {
+      toast('Error: ' + result.error);
+    } else {
+      toast('Report saved: ' + result.reportKey);
+      await loadReports();
+    }
+  }
+
+  async function recover(service) {
+    toast('Recovering ' + service + '...');
+    const result = await fetchJSON(`${BASE}/recover/${service}`, 'POST');
+    toast(service + ': ' + (result.recoverySuccessful ? 'Recovery successful' : 'Recovery failed'));
+    await refreshAll();
+  }
+
+  async function simulateDown(service) {
+    await fetchJSON(`${BASE}/simulate/down/${service}`, 'POST');
+    toast(service + ' marked as DOWN for demo');
+    await refreshAll();
+  }
+
+  async function simulateUp(service) {
+    await fetchJSON(`${BASE}/simulate/up/${service}`, 'POST');
+    toast(service + ' simulation cleared');
+    await refreshAll();
+  }
+
+  async function loadStream() {
+    const events = await fetchJSON(BASE + '/stream?limit=20&timeoutMs=2000');
+    if (!events.length || events[0].error) {
+      document.getElementById('streamList').innerHTML =
+              '<div class="empty-state">No events in Kafka stream yet — trigger a health check first</div>';
+      return;
+    }
+    const rows = events.map(e => {
+      const status = e.status || e.lastStatus || 'UNKNOWN';
+      return `<tr>
+                    <td>${e.serviceName || e.service_name || '-'}</td>
+                    <td><span class="status-badge ${statusClass(status)}">${status}</span></td>
+                    <td>${e.responseTimeMs || e.response_time_ms || 0}ms</td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.message || ''}</td>
+                    <td style="font-family:monospace;font-size:11px">offset:${e.kafkaOffset || '-'}</td>
+                    <td>${e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : '-'}</td>
+                </tr>`;
+    }).join('');
+    document.getElementById('streamList').innerHTML =
+            `<table><thead><tr><th>Service</th><th>Status</th><th>Response</th><th>Message</th><th>Kafka</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  async function loadAnalytics() {
+    const summary = await fetchJSON(BASE + '/analytics');
+    if (summary.error || !Object.keys(summary).length) {
+      document.getElementById('analyticsGrid').innerHTML =
+              '<div class="card" style="grid-column:1/-1"><div class="empty-state">No DynamoDB analytics yet — click "Store snapshot now" or wait for the hourly schedule</div></div>';
+      return;
+    }
+    const html = Object.entries(summary).map(([name, s]) => {
+      const uptime = s.avgUptimePercent || 0;
+      const fillClass = uptime >= 90 ? '' : uptime >= 50 ? ' warn' : ' danger';
+      return `<div class="card">
+                    <div class="service-name">${name}</div>
+                    <div class="stat-row"><span>Avg uptime (DynamoDB)</span><span class="stat-value">${uptime}%</span></div>
+                    <div class="stat-row"><span>Data points</span><span class="stat-value">${s.dataPoints || 0}</span></div>
+                    <div class="uptime-bar"><div class="uptime-fill${fillClass}" style="width:${uptime}%"></div></div>
+                </div>`;
+    }).join('');
+    document.getElementById('analyticsGrid').innerHTML = html;
+  }
+
+  async function triggerSnapshot() {
+    toast('Storing analytics snapshot in DynamoDB...');
+    const result = await fetchJSON(BASE + '/analytics/snapshot', 'POST');
+    toast(result.message || 'Snapshot stored');
+    await loadAnalytics();
+  }
+
+  async function refreshAll() {
+    document.getElementById('refreshSpinner').style.display = 'inline-block';
+    await Promise.all([loadStats(), loadStatus(), loadHistory(),
+      loadAlerts(), loadReports(),
+      loadStream(), loadAnalytics()]);
+    document.getElementById('refreshSpinner').style.display = 'none';
+    document.getElementById('lastRefresh').textContent =
+            'Last refresh: ' + new Date().toLocaleTimeString();
+  }
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    el.classList.add('active');
+  }
+
+  refreshAll();
+  setInterval(refreshAll, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: AcpCw3HealthMonitor
+
+server:
+  port: 8080
+
+# All connection details passed via environment variables
+# ACP_POSTGRES, ACP_S3, ACP_DYNAMODB
+# REDIS_HOST, REDIS_PORT
+# RABBITMQ_HOST, RABBITMQ_PORT
+# KAFKA_BOOTSTRAP_SERVERS
+
+health:
+  check:
+    # How often to run automatic health checks (milliseconds)
+    interval: 30000
+    # Alert queue name in RabbitMQ
+    alert-queue: health-alerts
+    # Kafka topic for health events
+    kafka-topic: health-events
+    # Postgres table for health history
+    history-table: health_history
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info, health
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    enabled: true
+
+logging:
+  level:
+    web: info
+    uk.ac.ed.inf.cw3: debug
+
+
