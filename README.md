@@ -23,7 +23,7 @@
 
 A production-grade observability platform that continuously monitors all six ACP stack services, detects failures, attempts automated recovery, and persists telemetry simultaneously across five storage backends.
 
-The system addresses a fundamental gap in CW1/CW2: when any dependent service becomes unavailable, the application returns a generic HTTP 500 with no diagnostic context, no failure history, and no automated recovery. This monitor solves that.
+The system addresses a fundamental problem of when any dependent service becomes unavailable, the application returns a generic HTTP 500 with no diagnostic context, no failure history, and no automated recovery. This monitor solves that.
 
 **Inspired by:** AWS CloudWatch Synthetics, Datadog, PagerDuty — adapted to the ACP stack.
 
